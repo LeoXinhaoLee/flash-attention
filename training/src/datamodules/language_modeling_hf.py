@@ -1,3 +1,5 @@
+import pdb
+
 # Adapted from https://github.com/huggingface/transformers/blob/master/examples/pytorch/language-modeling/run_clm.py
 from itertools import chain
 from pathlib import Path
@@ -21,8 +23,8 @@ from src.datamodules.datasets.lm_dataset import LMDataset
 from src.datamodules.fault_tolerant_sampler import RandomFaultTolerantSampler
 from src.datamodules.fault_tolerant_sampler import FaultTolerantDistributedSampler
 from src.datamodules.datasets.detokenizer import DATASET_TOKENIZATION_REGISTRY
-from src.utils.utils import get_logger
-logger = get_logger()
+# from src.utils.utils import get_logger
+# logger = get_logger()
 
 
 # https://github.com/numpy/numpy/issues/18294
@@ -44,7 +46,7 @@ class LMDataModule(LightningDataModule):
                  detokenize=False, val_only=False, batch_size=32, batch_size_eval=None, num_workers=1,
                  shuffle=False, pin_memory=False, drop_last=False, fault_tolerant=False, ddp=False,
                  fast_forward_epochs=None, fast_forward_batches=None,
-                 use_shmem=True):
+                 use_shmem=True, raw_json_path=None, finetune_ratio=None):
         super().__init__()
         self.dataset_name = dataset_name
         self.dataset_config_name = dataset_config_name
@@ -77,6 +79,10 @@ class LMDataModule(LightningDataModule):
         if self.use_shmem:
             assert cache_dir is not None
 
+        # @xinhao: add option to specify raw json path directly
+        self.raw_json_path = raw_json_path
+        self.finetune_ratio = finetune_ratio
+
     def prepare_data(self):
         if self.cache_dir is None:  # Just download the dataset
             load_dataset(self.dataset_name, self.dataset_config_name)
@@ -89,10 +95,17 @@ class LMDataModule(LightningDataModule):
         concat_ids, self.tokenizer = self.process_dataset()
         self.vocab_size = len(self.tokenizer)
         # Create all splits
-        self.dataset_train, self.dataset_val, self.dataset_test = [
-            LMDataset(concat_ids[split], seq_len=self.max_length)
-            for split in ['train', 'validation', 'test']
-        ]
+        if self.dataset_name == 'books3_splitted_finetune':
+            self.dataset_train, self.dataset_finetune, \
+            self.dataset_val, self.dataset_test = [
+                LMDataset(concat_ids[split], seq_len=self.max_length)
+                for split in ['train', 'finetune', 'validation', 'test']
+            ]
+        else:
+            self.dataset_train, self.dataset_val, self.dataset_test = [
+                LMDataset(concat_ids[split], seq_len=self.max_length)
+                for split in ['train', 'validation', 'test']
+            ]
 
     def process_dataset(self):
         cache_dir = None if self.cache_dir is None else self.cache_dir / self._cache_dir_name
@@ -100,7 +113,11 @@ class LMDataModule(LightningDataModule):
             if cache_dir.is_dir():
                 return self._load_from_cache(cache_dir)
 
-        raw_datasets = load_dataset(self.dataset_name, self.dataset_config_name)
+        if self.raw_json_path is not None:
+            raw_datasets = load_dataset('json', data_files=self.raw_json_path)
+        else:
+            raw_datasets = load_dataset(self.dataset_name, self.dataset_config_name)
+
         # https://github.com/stanford-crfm/mistral/blob/main/src/corpora/auto.py
         if 'validation' not in raw_datasets:
             assert "train" in raw_datasets, "You must have train in raw_datasets to make a validation raw_datasets"
@@ -109,6 +126,18 @@ class LMDataModule(LightningDataModule):
                 shuffle=True  # Otherwise test will be at the end of the dataset
             )
             raw_datasets['validation'] = raw_datasets['test']
+            if 'books3_splitted_finetune' in str(self.cache_dir):
+                assert self.finetune_ratio is not None, "Must specify a finetune data ratio!"
+                del raw_datasets['test']
+                validation = raw_datasets['validation']
+                raw_datasets = raw_datasets["train"].train_test_split(
+                    test_size=self.finetune_ratio,
+                    seed=self.val_split_seed,
+                    shuffle=True  # split train set into pre-train and finetune
+                )
+                raw_datasets['finetune'] = raw_datasets['test']
+                raw_datasets['validation'] = validation
+                raw_datasets['test'] = validation
 
         if self.val_only:  # Should only be used for evaluation, not for training
             raw_datasets['train'] = raw_datasets['validation']
@@ -231,7 +260,8 @@ class LMDataModule(LightningDataModule):
 
     def _save_to_cache(self, concat_ids, tokenizer, cache_dir):
         cache_dir.mkdir(parents=True, exist_ok=True)
-        logger.info(f'Saving to cache at {str(cache_dir)}')
+        # logger.info(f'Saving to cache at {str(cache_dir)}')
+        print(f'Saving to cache at {str(cache_dir)}')
         for k, v in concat_ids.items():
             np.save(cache_dir / f'{k}.npy', v)
         with open(cache_dir / 'tokenizer.pkl', 'wb') as f:
@@ -239,9 +269,14 @@ class LMDataModule(LightningDataModule):
 
     def _load_from_cache(self, cache_dir):
         assert cache_dir.is_dir()
-        logger.info(f'Load from cache at {str(cache_dir)}')
-        concat_ids = {split: np.load(cache_dir / f'{split}.npy', mmap_mode='r')
-                      for split in ['train', 'validation', 'test']}
+        # logger.info(f'Load from cache at {str(cache_dir)}')
+        print(f'Load from cache at {str(cache_dir)}')
+        if self.dataset_name == 'books3_splitted_finetune':
+            concat_ids = {split: np.load(cache_dir / f'{split}.npy', mmap_mode='r')
+                          for split in ['train', 'finetune', 'validation', 'test']}
+        else:
+            concat_ids = {split: np.load(cache_dir / f'{split}.npy', mmap_mode='r')
+                          for split in ['train', 'validation', 'test']}
         with open(cache_dir / 'tokenizer.pkl', 'rb') as f:
             tokenizer = pickle.load(f)
         return concat_ids, tokenizer
@@ -250,12 +285,19 @@ class LMDataModule(LightningDataModule):
     def _cache_dir_name(self):
         return f'tokenizer_name-{self.tokenizer_name}-val_ratio-{self.val_ratio}-val_split_seed-{self.val_split_seed}-add_eos-{self.add_eos}-detokenize-{self.detokenize}'
 
-    def train_dataloader(self, *args: Any, **kwargs: Any) -> DataLoader:
+    def train_dataloader(self, mode='pretrain', *args: Any, **kwargs: Any) -> DataLoader:
         """ The train dataloader """
+        if mode == 'pretrain':
+            selected_dataset = self.dataset_train
+        elif mode == 'finetune':
+            selected_dataset = self.dataset_finetune
+        else:
+            raise NotImplementedError(f'Mode {mode} not implemented!')
+
         if self.shuffle and self.fault_tolerant:
             shuffle = False
-            sampler = (FaultTolerantDistributedSampler(self.dataset_train) if self.ddp
-                       else RandomFaultTolerantSampler(self.dataset_train))
+            sampler = (FaultTolerantDistributedSampler(selected_dataset) if self.ddp
+                       else RandomFaultTolerantSampler(selected_dataset))
             # TD [2022-08-06]: Only the DDP sampler supports fast-forwarding for now
             # We assume that it's being resumed with the same number of GPUs
             if self.ddp and self.fast_forward_epochs is not None and self.fast_forward_batches is not None:
@@ -266,7 +308,7 @@ class LMDataModule(LightningDataModule):
         else:
             shuffle = self.shuffle
             sampler = None
-        return self._data_loader(self.dataset_train, batch_size=self.batch_size,
+        return self._data_loader(selected_dataset, batch_size=self.batch_size,
                                  shuffle=shuffle, sampler=sampler)
 
     def val_dataloader(self, *args: Any, **kwargs: Any) -> Union[DataLoader, List[DataLoader]]:

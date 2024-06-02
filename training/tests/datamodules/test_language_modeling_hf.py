@@ -218,27 +218,49 @@ class TestLMDataModule:
             assert torch.allclose(x[:, 1:], y[:, :-1])
 
     def test_books(self):
+        # batch_size = 8
+        # dataset_name = 'books3_splitted_finetune'  # useless
+        # dataset_config_name = None
+        # cache_dir = Path('/mnt/disks/persistent/books3_splitted_finetune')  # path to save tokenized dataset
+        # raw_json_path = '/mnt/disks/persistent/lwm_raw/lwm_text_data/combined_books.jsonl'
+        # finetune_ratio = 0.167  # 1/6 of full train set becomes finetune set, 5/6 is pre-train set
+        # max_length = 2048  # only useful for deciding chunking data for sampler idx, won't affect tokenization
+        # # num_workers = num_cpu_cores() // 2
+        # num_workers = 1
+        # # Dataset is too large to fit into memory, need to use disk for concatenation
+        # datamodule = LMDataModule(dataset_name, tokenizer_name='meta-llama/Llama-2-7b-hf',
+        #                           dataset_config_name=dataset_config_name,
+        #                           max_length=max_length, cache_dir=cache_dir,
+        #                           add_eos=True, batch_size=batch_size,
+        #                           num_workers=num_workers, use_shmem=False,
+        #                           raw_json_path=raw_json_path, finetune_ratio=finetune_ratio)
+        # datamodule.prepare_data()
+        # datamodule.setup(stage='fit')
+        # train_loader = datamodule.train_dataloader()
+        # finetune_loader = datamodule.train_dataloader(mode='finetune')
+        # val_loader = datamodule.val_dataloader()
+        # print('ctx=2k Train loader length: ', len(train_loader))
+        # print('ctx=2k Finetune loader length: ', len(finetune_loader))
+        # print('ctx=2k Val loader length: ', len(val_loader))
+
         batch_size = 8
-        dataset_name = 'books3_splitted_finetune'  # useless
+        dataset_name = 'books3_pad_bos_16'  # useless
         dataset_config_name = None
-        cache_dir = Path('/mnt/disks/persistent/books3_splitted_finetune')  # path to save tokenized dataset
+        cache_dir = Path('/mnt/disks/persistent/books3_pad_bos_16')  # path to save tokenized dataset
         raw_json_path = '/mnt/disks/persistent/lwm_raw/lwm_text_data/combined_books.jsonl'
-        finetune_ratio = 0.167  # 1/6 of full train set becomes finetune set, 5/6 is pre-train set
         max_length = 2048  # only useful for deciding chunking data for sampler idx, won't affect tokenization
-        # num_workers = num_cpu_cores() // 2
-        num_workers = 1
+        num_workers = num_cpu_cores() // 2
+        chunk_size = 16
         # Dataset is too large to fit into memory, need to use disk for concatenation
         datamodule = LMDataModule(dataset_name, tokenizer_name='meta-llama/Llama-2-7b-hf',
                                   dataset_config_name=dataset_config_name,
                                   max_length=max_length, cache_dir=cache_dir,
                                   add_eos=True, batch_size=batch_size,
                                   num_workers=num_workers, use_shmem=False,
-                                  raw_json_path=raw_json_path, finetune_ratio=finetune_ratio)
+                                  raw_json_path=raw_json_path, pad_to_multiple_of=chunk_size)
         datamodule.prepare_data()
         datamodule.setup(stage='fit')
         train_loader = datamodule.train_dataloader()
-        finetune_loader = datamodule.train_dataloader(mode='finetune')
         val_loader = datamodule.val_dataloader()
         print('ctx=2k Train loader length: ', len(train_loader))
-        print('ctx=2k Finetune loader length: ', len(finetune_loader))
         print('ctx=2k Val loader length: ', len(val_loader))

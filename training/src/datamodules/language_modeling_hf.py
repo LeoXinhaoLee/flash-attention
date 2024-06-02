@@ -46,7 +46,7 @@ class LMDataModule(LightningDataModule):
                  detokenize=False, val_only=False, batch_size=32, batch_size_eval=None, num_workers=1,
                  shuffle=False, pin_memory=False, drop_last=False, fault_tolerant=False, ddp=False,
                  fast_forward_epochs=None, fast_forward_batches=None,
-                 use_shmem=True, raw_json_path=None, finetune_ratio=None):
+                 use_shmem=True, raw_json_path=None, finetune_ratio=None, pad_to_multiple_of=0):
         super().__init__()
         self.dataset_name = dataset_name
         self.dataset_config_name = dataset_config_name
@@ -82,6 +82,9 @@ class LMDataModule(LightningDataModule):
         # @xinhao: add option to specify raw json path directly
         self.raw_json_path = raw_json_path
         self.finetune_ratio = finetune_ratio
+
+        # @xinhao: add option for end-document padding
+        self.pad_to_multiple_of= pad_to_multiple_of
 
     def prepare_data(self):
         if self.cache_dir is None:  # Just download the dataset
@@ -173,6 +176,21 @@ class LMDataModule(LightningDataModule):
             tokenize = lambda example: tokenizer(add_eos_batched(example[text_column_name]))
         else:
             tokenize = lambda example: tokenizer(example[text_column_name])
+
+        # @xinhao: integrate Jiarui's script
+        if self.pad_to_multiple_of > 0:
+            _tokenize = tokenize
+            def pad_to_multiple(tokens, pad_token_id, multiple):
+                length = len(tokens)
+                padding_length = (multiple - length % multiple) % multiple
+                return tokens + [pad_token_id] * padding_length
+            def tokenize_pad_to_multiple(example):
+                tokenize_dic = _tokenize(example)
+                input_ids = tokenize_dic.pop('input_ids')
+                input_ids = [pad_to_multiple(tokens, tokenizer.bos_token_id, self.pad_to_multiple_of) for tokens in input_ids]
+                return {'input_ids': input_ids, **tokenize_dic}
+            tokenize = tokenize_pad_to_multiple
+
         # tokenized_datasets = raw_datasets.map(
         #     tokenize,
         #     batched=True,

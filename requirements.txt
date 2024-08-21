@@ -1,0 +1,15 @@
+pytest==8.3.2
+python-dotenv==1.0.1
+pytorch-lightning==2.4.0
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.1.1
+transformers==4.44.1
+datasets==2.18.0
+tokenizers==0.19.1
+numpy==1.26.4
+huggingface_hub==0.24.6
+tqdm==4.66.5
+multiprocess==0.70.16
+pyarrow== 17.0.0
+pyarrow-hotfix==0.6
+pandas==2.2.2

@@ -1,3 +1,9 @@
+"""
+@Jiarui
+datasets-2.18.0
+tokenizers-0.15.2
+transformers-4.39.3
+"""
 import os
 from pathlib import Path
 current_dir = Path(__file__).parent.absolute()
@@ -217,7 +223,7 @@ class TestLMDataModule:
             assert x.dtype == torch.long
             assert torch.allclose(x[:, 1:], y[:, :-1])
 
-    def test_books(self):
+    def test_books(self, dataset_name):
         # batch_size = 8
         # dataset_name = 'books3_splitted_finetune'  # useless
         # dataset_config_name = None
@@ -243,24 +249,60 @@ class TestLMDataModule:
         # print('ctx=2k Finetune loader length: ', len(finetune_loader))
         # print('ctx=2k Val loader length: ', len(val_loader))
 
-        batch_size = 8
-        dataset_name = 'books3_pad_bos_16'  # useless
-        dataset_config_name = None
-        cache_dir = Path('/mnt/disks/persistent/books3_pad_bos_16')  # path to save tokenized dataset
-        raw_json_path = '/mnt/disks/persistent/lwm_raw/lwm_text_data/combined_books.jsonl'
-        max_length = 2048  # only useful for deciding chunking data for sampler idx, won't affect tokenization
-        num_workers = num_cpu_cores() // 2
-        chunk_size = 16
-        # Dataset is too large to fit into memory, need to use disk for concatenation
-        datamodule = LMDataModule(dataset_name, tokenizer_name='meta-llama/Llama-2-7b-hf',
-                                  dataset_config_name=dataset_config_name,
-                                  max_length=max_length, cache_dir=cache_dir,
-                                  add_eos=True, batch_size=batch_size,
-                                  num_workers=num_workers, use_shmem=False,
-                                  raw_json_path=raw_json_path, pad_to_multiple_of=chunk_size)
-        datamodule.prepare_data()
-        datamodule.setup(stage='fit')
-        train_loader = datamodule.train_dataloader()
-        val_loader = datamodule.val_dataloader()
-        print('ctx=2k Train loader length: ', len(train_loader))
-        print('ctx=2k Val loader length: ', len(val_loader))
+        # batch_size = 8
+        # dataset_name = 'books3_pad_bos_16'  # useless
+        # dataset_config_name = None
+        # cache_dir = Path('/mnt/disks/persistent/books3_pad_bos_16')  # path to save tokenized dataset
+        # raw_json_path = '/mnt/disks/persistent/lwm_raw/lwm_text_data/combined_books.jsonl'
+        # max_length = 2048  # only useful for deciding chunking data for sampler idx, won't affect tokenization
+        # # num_workers = num_cpu_cores() // 2
+        # num_workers = 1
+        # chunk_size = 16
+        # # Dataset is too large to fit into memory, need to use disk for concatenation
+        # datamodule = LMDataModule(dataset_name, tokenizer_name='meta-llama/Llama-2-7b-hf',
+        #                           dataset_config_name=dataset_config_name,
+        #                           max_length=max_length, cache_dir=cache_dir,
+        #                           add_eos=True, batch_size=batch_size,
+        #                           num_workers=num_workers, use_shmem=False,
+        #                           raw_json_path=raw_json_path, pad_to_multiple_of=chunk_size)
+        # datamodule.prepare_data()
+        # datamodule.setup(stage='fit')
+        # train_loader = datamodule.train_dataloader()
+        # val_loader = datamodule.val_dataloader()
+        # print('ctx=2k Train loader length: ', len(train_loader))
+        # print('ctx=2k Val loader length: ', len(val_loader))
+
+        # from transformers import (
+        #     AutoTokenizer,
+        #     BitsAndBytesConfig,
+        #     LlamaForCausalLM,
+        #     LlamaConfig,
+        # )
+        # dataset_name_list = ['books3_10k_100k', 'books3_100k_200k',
+        #                      'books3_200k_500k', 'books3_500k_1M',
+                             # 'books3_1M_plus'
+                             # ]
+        # dataset_name_list = ['books3_1M_plus']
+        dataset_name_list = [dataset_name]
+        for dataset_name in dataset_name_list:
+            print(dataset_name)
+            batch_size = 8
+            dataset_config_name = None
+            cache_dir = Path(f'/persistent/datasets/{dataset_name}_pad_bos_16')  # path to save tokenized dataset
+            raw_json_path = f'/books3_jsonl/{dataset_name}.jsonl'
+            max_length = 2048  # only useful for deciding chunking data for sampler idx, won't affect tokenization
+            num_workers = 16
+            chunk_size = 16
+            # Dataset is too large to fit into memory, need to use disk for concatenation
+            datamodule = LMDataModule(dataset_name, tokenizer_name='meta-llama/Meta-Llama-3.1-8B',
+                                      dataset_config_name=dataset_config_name,
+                                      max_length=max_length, cache_dir=cache_dir,
+                                      add_eos=True, batch_size=batch_size,
+                                      num_workers=num_workers, use_shmem=False,
+                                      raw_json_path=raw_json_path, pad_to_multiple_of=chunk_size)
+            datamodule.prepare_data()
+            datamodule.setup(stage='fit')
+            train_loader = datamodule.train_dataloader()
+            val_loader = datamodule.val_dataloader()
+            print('ctx=2k Train loader length: ', len(train_loader))
+            print('ctx=2k Val loader length: ', len(val_loader))

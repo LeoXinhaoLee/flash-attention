@@ -1,8 +1,6 @@
 """
-@Jiarui
-datasets-2.18.0
-tokenizers-0.15.2
-transformers-4.39.3
+@Xinhao
+c3d-standard-180 180 vCPUs 720GB mem --> num_workers=16
 """
 import os
 from pathlib import Path

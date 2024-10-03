@@ -306,24 +306,24 @@ class TestLMDataModule:
             print('ctx=2k Val loader length: ', len(val_loader))
 
     def test_slimpajama(self):
-        dataset_name = 'SlimPajama'
-        batch_size = 8
+        from src.datamodules.language_modeling_SPJ_hf import LMDataModule
+        dataset_name = '/juice5/scr5/nlp/mttt/datasets/SlimPajama-627B-test'
         dataset_config_name = None
         cache_dir = Path(f'/juice5/scr5/nlp/mttt/datasets/SlimPajama-627B-llama3-tokenized')  # path to save tokenized dataset
-        raw_json_path = f'/juice5/scr5/nlp/mttt/datasets/SlimPajama-627B'
+        batch_size = 8
         max_length = 2048
         num_workers = num_cpu_cores() // 2
-        chunk_size = 16
+        chunk_size = 0 # 16
         # Dataset is too large to fit into memory, need to use disk for concatenation
         datamodule = LMDataModule(dataset_name, tokenizer_name='meta-llama/Meta-Llama-3.1-8B',
                                   dataset_config_name=dataset_config_name,
                                   max_length=max_length, cache_dir=cache_dir,
                                   add_eos=True, batch_size=batch_size,
                                   num_workers=num_workers, use_shmem=False,
-                                  raw_json_path=raw_json_path, pad_to_multiple_of=chunk_size)
+                                  raw_json_path=None, pad_to_multiple_of=chunk_size)
         datamodule.prepare_data()
-        datamodule.setup(stage='fit')
-        train_loader = datamodule.train_dataloader()
-        val_loader = datamodule.val_dataloader()
-        print('ctx=2k Train loader length: ', len(train_loader))
-        print('ctx=2k Val loader length: ', len(val_loader))
+        # datamodule.setup(stage='fit')
+        # train_loader = datamodule.train_dataloader()
+        # val_loader = datamodule.val_dataloader()
+        # print('ctx=2k Train loader length: ', len(train_loader))
+        # print('ctx=2k Val loader length: ', len(val_loader))

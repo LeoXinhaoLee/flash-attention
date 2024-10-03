@@ -8,8 +8,11 @@ current_dir = Path(__file__).parent.absolute()
 
 
 import pytest
+import shutil
+import subprocess
 
 import torch
+import numpy as np
 
 import dotenv
 
@@ -305,25 +308,61 @@ class TestLMDataModule:
             print('ctx=2k Train loader length: ', len(train_loader))
             print('ctx=2k Val loader length: ', len(val_loader))
 
-    def test_slimpajama(self):
+    # def test_slimpajama(self):
+    #     from src.datamodules.language_modeling_SPJ_hf import LMDataModule
+    #     dataset_name = '/juice5/scr5/nlp/mttt/datasets/SlimPajama-627B-test'
+    #     dataset_config_name = None
+    #     cache_dir = Path(f'/juice5/scr5/nlp/mttt/datasets/SlimPajama-627B-llama3-tokenized')  # path to save tokenized dataset
+    #     batch_size = 8
+    #     max_length = 2048
+    #     num_workers = num_cpu_cores() // 2
+    #     chunk_size = 16
+    #     # Dataset is too large to fit into memory, need to use disk for concatenation
+    #     datamodule = LMDataModule(dataset_name, tokenizer_name='meta-llama/Meta-Llama-3.1-8B',
+    #                               dataset_config_name=dataset_config_name,
+    #                               max_length=max_length, cache_dir=cache_dir,
+    #                               add_eos=True, batch_size=batch_size,
+    #                               num_workers=num_workers, use_shmem=False,
+    #                               raw_json_path=None, pad_to_multiple_of=chunk_size)
+    #     datamodule.prepare_data()
+
+    def test_slimpajama(self, chunk_name):
         from src.datamodules.language_modeling_SPJ_hf import LMDataModule
-        dataset_name = '/juice5/scr5/nlp/mttt/datasets/SlimPajama-627B-test'
-        dataset_config_name = None
-        cache_dir = Path(f'/juice5/scr5/nlp/mttt/datasets/SlimPajama-627B-llama3-tokenized')  # path to save tokenized dataset
-        batch_size = 8
-        max_length = 2048
-        num_workers = num_cpu_cores() // 2
-        chunk_size = 0 # 16
-        # Dataset is too large to fit into memory, need to use disk for concatenation
-        datamodule = LMDataModule(dataset_name, tokenizer_name='meta-llama/Meta-Llama-3.1-8B',
-                                  dataset_config_name=dataset_config_name,
-                                  max_length=max_length, cache_dir=cache_dir,
-                                  add_eos=True, batch_size=batch_size,
-                                  num_workers=num_workers, use_shmem=False,
-                                  raw_json_path=None, pad_to_multiple_of=chunk_size)
-        datamodule.prepare_data()
-        # datamodule.setup(stage='fit')
-        # train_loader = datamodule.train_dataloader()
-        # val_loader = datamodule.val_dataloader()
-        # print('ctx=2k Train loader length: ', len(train_loader))
-        # print('ctx=2k Val loader length: ', len(val_loader))
+
+        dataset_name = f'/juice5/scr5/nlp/mttt/datasets/SlimPajama-627B-tmp/{chunk_name}'
+        os.makedirs(dataset_name, exist_ok=True)
+        subprocess.run(['cp', '-r', '/juice5/scr5/nlp/mttt/datasets/SlimPajama-627B-tmp/test', dataset_name], check=True)
+        subprocess.run(['cp', '-r', '/juice5/scr5/nlp/mttt/datasets/SlimPajama-627B-tmp/validation', dataset_name], check=True)
+
+        original_dataset_path = '/juice5/scr5/nlp/mttt/datasets/SlimPajama-627B'
+        original_chunk_path = os.path.join(original_dataset_path, 'train', chunk_name)  # e.g., chunk1, diff chunk parallelized by diff machines
+
+        file_list = os.listdir(original_chunk_path)
+        file_list.sort()
+
+        files_per_iteration = 500
+        n_iter = len(file_list) // files_per_iteration
+        file_splits = np.array_split(file_list, n_iter)
+
+        for part_id, cur_iter_files in enumerate(file_splits):
+
+            shutil.rmtree(os.path.join(dataset_name, 'train'), ignore_errors=True)
+            os.makedirs(os.path.join(dataset_name, 'train'), exist_ok=True)
+            for file in cur_iter_files:
+                s_file_path = os.path.join(original_dataset_path, 'train', chunk_name, file)
+                t_file_path = os.path.join(dataset_name, 'train', file)
+                subprocess.run(['ln', s_file_path, t_file_path], check=True)
+
+            os.makedirs('/juice5/scr5/nlp/mttt/datasets/SlimPajama-627B-llama3-tokenized', exist_ok=True)
+            cache_dir = Path(f'/juice5/scr5/nlp/mttt/datasets/SlimPajama-627B-llama3-tokenized/{chunk_name}_part_{part_id}')  # path to save tokenized dataset
+            num_workers = num_cpu_cores() // 2
+            chunk_size = 16
+            datamodule = LMDataModule(dataset_name, tokenizer_name='meta-llama/Meta-Llama-3.1-8B',
+                                      dataset_config_name=None,
+                                      max_length=2048, cache_dir=cache_dir,
+                                      add_eos=True, batch_size=8,
+                                      num_workers=num_workers, use_shmem=False,
+                                      raw_json_path=None, pad_to_multiple_of=chunk_size)
+            datamodule.prepare_data()
+
+            shutil.rmtree(os.path.join(dataset_name, 'train'), ignore_errors=True)

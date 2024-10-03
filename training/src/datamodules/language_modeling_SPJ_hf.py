@@ -115,262 +115,6 @@ class LMDataModule(LightningDataModule):
                 for split in ['train', 'validation', 'test']
             ]
 
-    # def process_dataset(self):
-    #     cache_dir = None if self.cache_dir is None else self.cache_dir / self._cache_dir_name
-    #     if cache_dir is not None:
-    #         if cache_dir.is_dir():
-    #             return self._load_from_cache(cache_dir)
-    #
-    #     print('Start Loading!')
-    #     raw_datasets = load_dataset(self.dataset_name, self.dataset_config_name)
-    #     print('Loading Done!')
-    #
-    #     tokenizer = AutoTokenizer.from_pretrained(self.tokenizer_name, use_fast=True)
-    #
-    #     column_names = raw_datasets["train"].column_names  # 'text', 'meta'
-    #     text_column_name = "text"
-    #
-    #     assert self.add_eos
-    #     add_eos = lambda seq: (seq + tokenizer.eos_token) if seq else seq
-    #     add_eos_batched = lambda seqs: [add_eos(seq) for seq in seqs]
-    #     tokenize = lambda example: tokenizer(add_eos_batched(example[text_column_name]))
-    #
-    #     dtype = np.uint16 if tokenizer.vocab_size < 64 * 1024 else np.int32
-    #
-    #     def tokenize_concat(examples):
-    #         input_ids = np.fromiter(chain(*tokenize(examples)['input_ids']), dtype=dtype)
-    #         # Need to return a list since we're doing batched processing
-    #         return {'input_ids': [input_ids], 'len': [len(input_ids)]}
-    #
-    #     tokenized_datasets = raw_datasets.map(
-    #         tokenize_concat,
-    #         batched=True,
-    #         num_proc=max(self.num_workers, 1),
-    #         remove_columns=column_names,
-    #         desc="Running tokenizer on dataset",
-    #     )
-    #
-    #     # Use disk
-    #     concat_ids = {}
-    #     assert cache_dir is not None
-    #     cache_dir.mkdir(parents=True, exist_ok=True)
-    #
-    #     def write_ids_to_disk(example, filename):
-    #         with open(filename, 'r+b') as f:
-    #             mm = mmap.mmap(f.fileno(), 0)
-    #             start_idx = example['len_offset'] - len(example['input_ids'])
-    #             array_len = len(example['input_ids'])
-    #             arr = np.ndarray((array_len,), dtype=dtype, buffer=mm,
-    #                              offset=np.dtype(dtype).itemsize * start_idx)
-    #             arr[:] = example['input_ids']
-    #             mm.flush()
-    #
-    #     for name, ds in tokenized_datasets.items():
-    #         tokenized_datasets[name] = ds.add_column('len_offset', np.cumsum(ds['len']))
-    #         array_len = tokenized_datasets[name][-1]['len_offset']
-    #
-    #         filename = cache_dir / f'{name}.bin'
-    #         subprocess.run(['truncate', '-s', str(array_len * np.dtype(dtype).itemsize),
-    #                         str(filename)], check=True)
-    #
-    #         tokenized_datasets[name].map(
-    #             write_ids_to_disk,
-    #             fn_kwargs={'filename': filename},
-    #             batched=False,
-    #             num_proc=max(self.num_workers, 1),
-    #             desc="Concatenating examples",
-    #         )
-    #         concat_ids[name] = np.memmap(filename, dtype=dtype, mode='r', shape=(array_len,))
-    #
-    #     if cache_dir is not None:
-    #         self._save_to_cache(concat_ids, tokenizer, cache_dir)
-    #         if not self.use_shmem:
-    #             for name in concat_ids:
-    #                 Path(cache_dir / f'{name}.bin').unlink()
-    #     return concat_ids, tokenizer
-
-    # def process_dataset(self):
-    #     cache_dir = None if self.cache_dir is None else self.cache_dir / self._cache_dir_name
-    #     if cache_dir is not None:
-    #         if cache_dir.is_dir():
-    #             return self._load_from_cache(cache_dir)
-    #
-    #     print('Start Loading!')
-    #     raw_datasets = load_dataset(self.dataset_name, self.dataset_config_name)
-    #     print('Loading Done!')
-    #
-    #     tokenizer = AutoTokenizer.from_pretrained(self.tokenizer_name, use_fast=True)
-    #
-    #     column_names = raw_datasets["train"].column_names  # 'text', 'meta'
-    #     text_column_name = "text"
-    #     meta_column_name = "meta"
-    #
-    #     assert self.add_eos
-    #     add_eos = lambda seq: (seq + tokenizer.eos_token) if seq else seq
-    #     add_eos_batched = lambda seqs: [add_eos(seq) for seq in seqs]
-    #     tokenize = lambda example: tokenizer(add_eos_batched(example[text_column_name]))
-    #
-    #     dtype = np.uint16 if tokenizer.vocab_size < 64 * 1024 else np.int32
-    #
-        # def tokenize_concat(examples):
-        #     input_ids = np.fromiter(chain(*tokenize(examples)['input_ids']), dtype=dtype)
-        #     # Return a list for batched processing
-        #     return {'input_ids': [input_ids], 'len': [len(input_ids)]}
-    #
-    #     # Process each domain separately
-    #     domains = [
-    #         "RedPajamaCommonCrawl", "RedPajamaC4", "RedPajamaGithub",
-    #         "RedPajamaBook", "RedPajamaArXiv", "RedPajamaWikipedia",
-    #         "RedPajamaStackExchange"
-    #     ]
-    #
-    #     concat_ids = {}
-    #     assert cache_dir is not None
-    #     cache_dir.mkdir(parents=True, exist_ok=True)
-    #
-    #     for domain in domains:
-    #         # Filter dataset for the current domain
-    #         domain_datasets = raw_datasets.filter(lambda example: example[meta_column_name]['redpajama_set_name'] == domain)
-    #
-    #         tokenized_datasets = domain_datasets.map(
-    #             tokenize_concat,
-    #             batched=True,
-    #             num_proc=max(self.num_workers, 1),
-    #             remove_columns=column_names,
-    #             desc=f"Running tokenizer on {domain} dataset",
-    #         )
-    #
-    #         def write_ids_to_disk(example, filename):
-    #             with open(filename, 'r+b') as f:
-    #                 mm = mmap.mmap(f.fileno(), 0)
-    #                 start_idx = example['len_offset'] - len(example['input_ids'])
-    #                 array_len = len(example['input_ids'])
-    #                 arr = np.ndarray((array_len,), dtype=dtype, buffer=mm,
-    #                                  offset=np.dtype(dtype).itemsize * start_idx)
-    #                 arr[:] = example['input_ids']
-    #                 mm.flush()
-    #
-    #         # Add 'len_offset' to each split in tokenized_datasets
-    #         for split in tokenized_datasets.keys():
-    #             tokenized_datasets[split] = tokenized_datasets[split].add_column(
-    #                 'len_offset', np.cumsum(tokenized_datasets[split]['len'])
-    #             )
-    #             array_len = tokenized_datasets[split][-1]['len_offset']
-    #
-    #             # Save the tokenized examples for this domain and split
-    #             filename = cache_dir / f'{domain}_{split}.bin'
-    #             subprocess.run(['truncate', '-s', str(array_len * np.dtype(dtype).itemsize),
-    #                             str(filename)], check=True)
-    #
-    #             tokenized_datasets[split].map(
-    #                 write_ids_to_disk,
-    #                 fn_kwargs={'filename': filename},
-    #                 batched=False,
-    #                 num_proc=max(self.num_workers, 1),
-    #                 desc=f"Concatenating examples for {domain} {split}",
-    #             )
-    #             concat_ids[f"{domain}_{split}"] = np.memmap(filename, dtype=dtype, mode='r', shape=(array_len,))
-    #
-    #
-    #     if cache_dir is not None:
-    #         self._save_to_cache(concat_ids, tokenizer, cache_dir)
-    #         for domain in concat_ids:
-    #             Path(cache_dir / f'{domain}.bin').unlink()
-    #
-    #     return concat_ids, tokenizer
-
-    # def process_dataset(self):
-    #     cache_dir = None if self.cache_dir is None else self.cache_dir / self._cache_dir_name
-    #     if cache_dir is not None:
-    #         if cache_dir.is_dir():
-    #             return self._load_from_cache(cache_dir)
-    #
-    #     print('Start Loading!')
-    #     raw_datasets = load_dataset(self.dataset_name, self.dataset_config_name)
-    #     print('Loading Done!')
-    #
-    #     tokenizer = AutoTokenizer.from_pretrained(self.tokenizer_name, use_fast=True)
-    #
-    #     column_names = raw_datasets["train"].column_names  # 'text', 'meta'
-    #     text_column_name = "text"
-    #     meta_column_name = "meta"
-    #
-    #     assert self.add_eos
-    #     add_eos = lambda seq: (seq + tokenizer.eos_token) if seq else seq
-    #     add_eos_batched = lambda seqs: [add_eos(seq) for seq in seqs]
-    #     tokenize = lambda example: tokenizer(add_eos_batched(example[text_column_name]))
-    #
-    #     dtype = np.uint16 if tokenizer.vocab_size < 64 * 1024 else np.int32
-    #
-    #     def tokenize_concat(examples):
-    #         input_ids = np.fromiter(chain(*tokenize(examples)['input_ids']), dtype=dtype)
-    #         # Return a list for batched processing
-    #         return {'input_ids': [input_ids], 'len': [len(input_ids)]}
-    #
-    #     # Initialize a defaultdict to store grouped data by domain
-    #     domain_datasets = defaultdict(list)
-    #
-    #     # Group examples by their 'meta' field in a single pass
-    #     # TODO: not handle val and test for now
-    #     for example in raw_datasets['train']:
-    #         domain = example[meta_column_name]['redpajama_set_name']
-    #         domain_datasets[domain].append(example)
-    #
-    #     concat_ids = {}
-    #     assert cache_dir is not None
-    #     cache_dir.mkdir(parents=True, exist_ok=True)
-    #
-    #     # Now process each domain's dataset
-    #     for domain, examples in domain_datasets.items():
-    #         # Create a Dataset from the list of examples
-    #         domain_dataset = HF_Dataset.from_dict(
-    #             {key: [example[key] for example in examples] for key in examples[0].keys()})
-    #
-    #         tokenized_datasets = domain_dataset.map(
-    #             tokenize_concat,
-    #             batched=True,
-    #             num_proc=max(self.num_workers, 1),
-    #             remove_columns=column_names,
-    #             desc=f"Running tokenizer on {domain} dataset",
-    #         )
-    #
-    #         def write_ids_to_disk(example, filename):
-    #             with open(filename, 'r+b') as f:
-    #                 mm = mmap.mmap(f.fileno(), 0)
-    #                 start_idx = example['len_offset'] - len(example['input_ids'])
-    #                 array_len = len(example['input_ids'])
-    #                 arr = np.ndarray((array_len,), dtype=dtype, buffer=mm,
-    #                                  offset=np.dtype(dtype).itemsize * start_idx)
-    #                 arr[:] = example['input_ids']
-    #                 mm.flush()
-    #
-    #         # Add 'len_offset' to the tokenized dataset
-    #         tokenized_datasets = tokenized_datasets.add_column(
-    #             'len_offset', np.cumsum(tokenized_datasets['len'])
-    #         )
-    #         array_len = tokenized_datasets[-1]['len_offset']
-    #
-    #         # Save the tokenized examples for this domain
-    #         filename = cache_dir / f'{domain}.bin'
-    #         subprocess.run(['truncate', '-s', str(array_len * np.dtype(dtype).itemsize),
-    #                         str(filename)], check=True)
-    #
-    #         tokenized_datasets.map(
-    #             write_ids_to_disk,
-    #             fn_kwargs={'filename': filename},
-    #             batched=False,
-    #             num_proc=max(self.num_workers, 1),
-    #             desc=f"Concatenating examples for {domain}",
-    #         )
-    #         concat_ids[domain] = np.memmap(filename, dtype=dtype, mode='r', shape=(array_len,))
-    #
-    #     if cache_dir is not None:
-    #         self._save_to_cache(concat_ids, tokenizer, cache_dir)
-    #         if not self.use_shmem:
-    #             for domain in concat_ids:
-    #                 Path(cache_dir / f'{domain}.bin').unlink()
-    #
-    #     return concat_ids, tokenizer
 
     def process_dataset(self):
         cache_dir = None if self.cache_dir is None else self.cache_dir / self._cache_dir_name
@@ -389,14 +133,31 @@ class LMDataModule(LightningDataModule):
         meta_column_name = "meta"
 
         assert self.add_eos
-        # add_eos = lambda seq: (seq + tokenizer.eos_token) if seq else seq
-        # add_eos_batched = lambda seqs: [add_eos(seq) for seq in seqs]
-        # tokenize = lambda example: tokenizer(add_eos_batched(example[text_column_name]))
-
         dtype = np.uint16 if tokenizer.vocab_size < 64 * 1024 else np.int32
 
+        def tokenize_fn(text):
+            if self.add_eos:
+                text = text + tokenizer.eos_token
+            return tokenizer(text)
+
+        if self.pad_to_multiple_of > 0:
+            _tokenize_fn = tokenize_fn
+
+            def pad_to_multiple(tokens, pad_token_id, multiple):
+                length = len(tokens)
+                padding_length = (multiple - length % multiple) % multiple
+                return tokens + [pad_token_id] * padding_length
+
+            def tokenize_pad_to_multiple(example):
+                tokenize_dic = _tokenize_fn(example)
+                input_ids = tokenize_dic.pop('input_ids')
+                input_ids = pad_to_multiple(input_ids, tokenizer.bos_token_id, self.pad_to_multiple_of)
+                return {'input_ids': input_ids, **tokenize_dic}
+
+            tokenize_fn = tokenize_pad_to_multiple
+
         def tokenize_concat(examples):
-            input_ids = [tokenizer(seq + tokenizer.eos_token)['input_ids'] for seq in examples[text_column_name]]
+            input_ids = [tokenize_fn(seq)['input_ids'] for seq in examples[text_column_name]]
             lengths = [len(ids) for ids in input_ids]
             return {'input_ids': input_ids, 'len': lengths}
 
@@ -428,8 +189,14 @@ class LMDataModule(LightningDataModule):
             )
 
             # Separate examples into two groups based on their length
-            short_examples = tokenized_datasets.filter(lambda x: x['len'] < 1000)
-            long_examples = tokenized_datasets.filter(lambda x: x['len'] >= 1000)
+            domain_length_example_dict = {
+                'tok_len_below_10K': tokenized_datasets.filter(lambda x: x['len'] < 10 * 1e3),
+                'tok_len_10K_100K': tokenized_datasets.filter(lambda x: x['len'] >= 10 * 1e3 and x['len'] < 100 * 1e3),
+                'tok_len_100K_200K': tokenized_datasets.filter(lambda x: x['len'] >= 100 * 1e3 and x['len'] < 200 * 1e3),
+                'tok_len_200K_500K': tokenized_datasets.filter(lambda x: x['len'] >= 200 * 1e3 and x['len'] < 500 * 1e3),
+                'tok_len_500K_1M': tokenized_datasets.filter(lambda x: x['len'] >= 500 * 1e3 and x['len'] < 1000 * 1e3),
+                'tok_len_above_1M': tokenized_datasets.filter(lambda x: x['len'] >= 1000 * 1e3),
+            }
 
             def write_ids_to_disk(example, filename):
                 with open(filename, 'r+b') as f:
@@ -463,12 +230,9 @@ class LMDataModule(LightningDataModule):
                 concat_ids[f"{domain}_{group_name}"] = np.memmap(filename, dtype=dtype, mode='r', shape=(array_len,))
 
             # Process short examples
-            if len(short_examples['len']) > 0:
-                process_group('short', short_examples)  # TODO: handle num_rows=0
-
-            # Process long examples
-            if len(long_examples['len']) > 0:
-                process_group('long', long_examples)
+            for len_range in domain_length_example_dict.keys():
+                if len(domain_length_example_dict[len_range]['len']) > 0:
+                    process_group(len_range, domain_length_example_dict[len_range])
 
         if cache_dir is not None:
             self._save_to_cache(concat_ids, tokenizer, cache_dir)
@@ -477,7 +241,6 @@ class LMDataModule(LightningDataModule):
                     Path(cache_dir / f'{domain_group}.bin').unlink()
 
         return concat_ids, tokenizer
-
 
 
     def _save_to_cache(self, concat_ids, tokenizer, cache_dir):

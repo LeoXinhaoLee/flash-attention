@@ -343,7 +343,7 @@ class TestLMDataModule:
         file_list = os.listdir(original_chunk_path)
         file_list.sort()
 
-        files_per_iteration = 5
+        files_per_iteration = 50
         n_iter = len(file_list) // files_per_iteration
         file_splits = np.array_split(file_list, n_iter)
 
@@ -359,7 +359,6 @@ class TestLMDataModule:
             os.makedirs(os.path.join(data_path_prefix, 'SlimPajama-627B-llama3-tokenized'), exist_ok=True)
             cache_dir = Path(os.path.join(data_path_prefix, f'SlimPajama-627B-llama3-tokenized/{chunk_name}_part_{part_id}'))  # path to save tokenized dataset
             num_workers = num_cpu_cores() // 2
-            # num_workers = 28
             chunk_size = 16
             datamodule = LMDataModule(dataset_name, tokenizer_name='meta-llama/Meta-Llama-3.1-8B',
                                       dataset_config_name=None,

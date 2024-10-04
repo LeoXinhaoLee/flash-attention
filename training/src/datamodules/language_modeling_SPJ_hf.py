@@ -11,6 +11,7 @@ from collections import defaultdict
 import multiprocessing
 from tqdm import tqdm
 import pandas as pd
+import time
 
 from multiprocessing.shared_memory import SharedMemory
 from multiprocessing import Pool
@@ -717,13 +718,16 @@ class LMDataModule(LightningDataModule):
             desc="Tokenizing and grouping by domain and length",
         )
 
+        print('Started grouping by Pandas')
+        st = time.time()
         # Convert the tokenized results to a pandas DataFrame for efficient processing
         df = pd.DataFrame(tokenized_and_categorized)
-
         # Group examples by `domain` and `length_category`
         grouped_results = defaultdict(list)
         for (domain, length_category), group in df.groupby(['domain', 'length_category']):
             grouped_results[f"{domain}_{length_category}"] = group[['input_ids', 'len']].to_dict('records')
+        grouping_time = time.time() - st
+        print(f'Grouping done. Time: {grouping_time / 60:.1f} min')
 
         # Prepare for saving concatenated examples to disk
         concat_ids = {}

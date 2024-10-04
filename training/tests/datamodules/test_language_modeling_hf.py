@@ -328,19 +328,22 @@ class TestLMDataModule:
 
     def test_slimpajama(self, chunk_name):
         from src.datamodules.language_modeling_SPJ_hf import LMDataModule
+        
+        data_path_prefix = '/juice5/scr5/nlp/mttt/datasets'
+        # data_path_prefix = '/persistent_1/datasets'
 
-        dataset_name = f'/juice5/scr5/nlp/mttt/datasets/SlimPajama-627B-tmp/{chunk_name}'
+        dataset_name = os.path.join(data_path_prefix, f'SlimPajama-627B-tmp/{chunk_name}')
         os.makedirs(dataset_name, exist_ok=True)
-        subprocess.run(['cp', '-r', '/juice5/scr5/nlp/mttt/datasets/SlimPajama-627B-tmp/test', dataset_name], check=True)
-        subprocess.run(['cp', '-r', '/juice5/scr5/nlp/mttt/datasets/SlimPajama-627B-tmp/validation', dataset_name], check=True)
+        subprocess.run(['cp', '-r', os.path.join(data_path_prefix, f'SlimPajama-627B-tmp/test'), dataset_name], check=True)
+        subprocess.run(['cp', '-r', os.path.join(data_path_prefix, f'SlimPajama-627B-tmp/validation'), dataset_name], check=True)
 
-        original_dataset_path = '/juice5/scr5/nlp/mttt/datasets/SlimPajama-627B'
+        original_dataset_path = os.path.join(data_path_prefix, 'SlimPajama-627B')
         original_chunk_path = os.path.join(original_dataset_path, 'train', chunk_name)  # e.g., chunk1, diff chunk parallelized by diff machines
 
         file_list = os.listdir(original_chunk_path)
         file_list.sort()
 
-        files_per_iteration = 500
+        files_per_iteration = 5
         n_iter = len(file_list) // files_per_iteration
         file_splits = np.array_split(file_list, n_iter)
 
@@ -353,9 +356,10 @@ class TestLMDataModule:
                 t_file_path = os.path.join(dataset_name, 'train', file)
                 subprocess.run(['ln', s_file_path, t_file_path], check=True)
 
-            os.makedirs('/juice5/scr5/nlp/mttt/datasets/SlimPajama-627B-llama3-tokenized', exist_ok=True)
-            cache_dir = Path(f'/juice5/scr5/nlp/mttt/datasets/SlimPajama-627B-llama3-tokenized/{chunk_name}_part_{part_id}')  # path to save tokenized dataset
+            os.makedirs(os.path.join(data_path_prefix, 'SlimPajama-627B-llama3-tokenized'), exist_ok=True)
+            cache_dir = Path(os.path.join(data_path_prefix, f'SlimPajama-627B-llama3-tokenized/{chunk_name}_part_{part_id}'))  # path to save tokenized dataset
             num_workers = num_cpu_cores() // 2
+            # num_workers = 28
             chunk_size = 16
             datamodule = LMDataModule(dataset_name, tokenizer_name='meta-llama/Meta-Llama-3.1-8B',
                                       dataset_config_name=None,

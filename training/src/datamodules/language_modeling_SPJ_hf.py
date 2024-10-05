@@ -12,9 +12,6 @@ import multiprocessing
 from tqdm import tqdm
 import time
 import pandas as pd
-import swifter
-from pandarallel import pandarallel
-import dask.dataframe as dd
 
 from multiprocessing.shared_memory import SharedMemory
 from multiprocessing import Pool
@@ -35,7 +32,6 @@ from src.datamodules.fault_tolerant_sampler import FaultTolerantDistributedSampl
 from src.datamodules.datasets.detokenizer import DATASET_TOKENIZATION_REGISTRY
 # from src.utils.utils import get_logger
 # logger = get_logger()
-pandarallel.initialize(progress_bar=True)
 
 
 class LMDataModule(LightningDataModule):

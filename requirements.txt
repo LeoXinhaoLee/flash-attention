@@ -14,3 +14,4 @@ pyarrow== 17.0.0
 pyarrow-hotfix==0.6
 pandas==2.2.2
 zstandard
+ray

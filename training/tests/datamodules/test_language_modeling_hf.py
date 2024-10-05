@@ -329,8 +329,8 @@ class TestLMDataModule:
     def test_slimpajama(self, chunk_name):
         from src.datamodules.language_modeling_SPJ_hf import LMDataModule
         
-        data_path_prefix = '/juice5/scr5/nlp/mttt/datasets'
-        # data_path_prefix = '/persistent_1/datasets'
+        # data_path_prefix = '/juice5/scr5/nlp/mttt/datasets'
+        data_path_prefix = '/persistent_1/datasets'
 
         dataset_name = os.path.join(data_path_prefix, f'SlimPajama-627B-tmp/{chunk_name}')
         os.makedirs(dataset_name, exist_ok=True)

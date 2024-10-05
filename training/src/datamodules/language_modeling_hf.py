@@ -243,6 +243,7 @@ class LMDataModule(LightningDataModule):
             concat_ids = {}
             assert cache_dir is not None
             cache_dir.mkdir(parents=True, exist_ok=True)
+
             def write_ids_to_disk(example, filename):
                 with open(filename, 'r+b') as f:
                     mm = mmap.mmap(f.fileno(), 0)
@@ -252,14 +253,17 @@ class LMDataModule(LightningDataModule):
                                      offset=np.dtype(dtype).itemsize * start_idx)
                     arr[:] = example['input_ids']
                     mm.flush()
+
             for name, ds in tokenized_datasets.items():
                 tokenized_datasets[name] = ds.add_column('len_offset', np.cumsum(ds['len']))
                 array_len = tokenized_datasets[name][-1]['len_offset']
                 filename = cache_dir / f'{name}.bin'
+
                 # Need to create the file with this specific size first
                 # https://ostechnix.com/create-files-certain-size-linux/
                 subprocess.run(['truncate', '-s', str(array_len * np.dtype(dtype).itemsize),
                                 str(filename)], check=True)
+
                 tokenized_datasets[name].map(
                     write_ids_to_disk,
                     fn_kwargs={'filename': filename},

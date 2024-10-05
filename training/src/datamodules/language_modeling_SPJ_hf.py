@@ -10,9 +10,11 @@ import mmap
 from collections import defaultdict
 import multiprocessing
 from tqdm import tqdm
+import time
 import pandas as pd
 import swifter
-import time
+from pandarallel import pandarallel
+import dask.dataframe as dd
 
 from multiprocessing.shared_memory import SharedMemory
 from multiprocessing import Pool
@@ -33,6 +35,7 @@ from src.datamodules.fault_tolerant_sampler import FaultTolerantDistributedSampl
 from src.datamodules.datasets.detokenizer import DATASET_TOKENIZATION_REGISTRY
 # from src.utils.utils import get_logger
 # logger = get_logger()
+pandarallel.initialize(progress_bar=True)
 
 
 class LMDataModule(LightningDataModule):
@@ -189,16 +192,23 @@ class LMDataModule(LightningDataModule):
             desc="Tokenizing and grouping by domain and length",
         )
 
-        print('Started grouping by Pandas')
+        print('Started transforming to Pandas DataFrame')
         st = time.time()
-        # Convert the tokenized results to a pandas DataFrame for efficient processing
-        df = pd.DataFrame(tokenized_and_categorized)
+        df = tokenized_and_categorized.to_pandas()
+        print(f'Transform done. Time: {(time.time() - st)/ 60:.1f} min')
+
+        print('Started grouping')
+        st = time.time()
+        grouped = df.groupby(['domain', 'length_category'])
+        print(f'Grouping done. Time: {(time.time() - st) / 60:.1f} min')
+
         # Group examples by `domain` and `length_category`
         grouped_results = defaultdict(list)
-        for (domain, length_category), group in df.groupby(['domain', 'length_category']):
+        print('Started appending groups to list')
+        st = time.time()
+        for (domain, length_category), group in grouped:
             grouped_results[f"{domain}_{length_category}"] = group[['input_ids', 'len']].to_dict('records')
-        grouping_time = time.time() - st
-        print(f'Grouping done. Time: {grouping_time / 60:.1f} min')
+        print(f'Appending done. Time: {(time.time() - st) / 60:.1f} min')
 
         # Prepare for saving concatenated examples to disk
         concat_ids = {}

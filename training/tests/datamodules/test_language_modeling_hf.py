@@ -343,7 +343,7 @@ class TestLMDataModule:
         file_list = os.listdir(original_chunk_path)
         file_list.sort()
 
-        files_per_iteration = 50
+        files_per_iteration = 3
         n_iter = len(file_list) // files_per_iteration
         file_splits = np.array_split(file_list, n_iter)
 

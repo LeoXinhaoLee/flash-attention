@@ -28,3 +28,4 @@ venv
 
 # Xinhao tokenization script
 *.sh
+scripts_xh/

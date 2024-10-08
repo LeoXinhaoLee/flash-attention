@@ -14,6 +14,7 @@ import numpy as np
 import dotenv
 
 from training.src.datamodules.language_modeling_SPJ_hf import LMDataModule
+# from training.src.datamodules.language_modeling_hf import LMDataModule
 
 
 def div_up(x: int, y: int) -> int:
@@ -29,44 +30,33 @@ def num_cpu_cores():
         return len(os.sched_getaffinity(0))
 
 
-def clean_hf_cache(hf_cache):
-    if os.path.isdir(hf_cache):
-        hf_cache_files = os.listdir(hf_cache)
-        for hf_cache_file in hf_cache_files:
-            if hf_cache_file not in ['hub', 'token', 'module']:
-                hf_cache_file_path = os.path.join(hf_cache, hf_cache_file)
-                if os.path.isdir(hf_cache_file_path):
-                    shutil.rmtree(hf_cache_file_path, ignore_errors=True)
-                else:
-                    Path(hf_cache_file_path).unlink()
-    else:
-        os.makedirs(hf_cache, exist_ok=True)
-
 def main(args):
     chunk_name = args.chunk_name
 
     data_path_prefix = '/juice5/scr5/nlp/mttt/datasets'
-    # data_path_prefix = '/persistent_1/datasets'
 
-    hf_cache = f'/juice5/scr5/nlp/mttt/hf_hub_tmp/{chunk_name}'
-    clean_hf_cache(hf_cache)
+    hf_cache = f'/juice5/scr5/nlp/mttt/hf_hub_tmp_test/{chunk_name}'
+    os.environ['HF_HOME'] = hf_cache
+    if os.path.isdir(hf_cache):
+        shutil.rmtree(hf_cache, ignore_errors=True)
+    os.makedirs(hf_cache)
 
-    dataset_name = os.path.join(data_path_prefix, f'SlimPajama-627B-tmp/{chunk_name}')
+    dataset_name = os.path.join(data_path_prefix, f'SlimPajama-627B-tmp-test/{chunk_name}')
     os.makedirs(dataset_name, exist_ok=True)
-    subprocess.run(['cp', '-r', os.path.join(data_path_prefix, f'SlimPajama-627B-tmp/test'), dataset_name], check=True)
-    subprocess.run(['cp', '-r', os.path.join(data_path_prefix, f'SlimPajama-627B-tmp/validation'), dataset_name], check=True)
+    subprocess.run(['cp', '-r', os.path.join(data_path_prefix, f'SlimPajama-627B-tmp-test/test'), dataset_name], check=True)
+    subprocess.run(['cp', '-r', os.path.join(data_path_prefix, f'SlimPajama-627B-tmp-test/validation'), dataset_name], check=True)
 
-    original_dataset_path = os.path.join(data_path_prefix, 'SlimPajama-627B')
+    original_dataset_path = os.path.join(data_path_prefix, 'SlimPajama-627B-test')
     original_chunk_path = os.path.join(original_dataset_path, 'train', chunk_name)  # e.g., chunk1, diff chunk parallelized by diff machines
 
-    os.makedirs(os.path.join(data_path_prefix, 'SlimPajama-627B-llama3-tokenized'), exist_ok=True)
-    chunk_cache_path = os.path.join(data_path_prefix, 'SlimPajama-627B-llama3-tokenized', chunk_name)  # save .npy
+    os.makedirs(os.path.join(data_path_prefix, 'SlimPajama-627B-llama3-tokenized-test'), exist_ok=True)
+    chunk_cache_path = os.path.join(data_path_prefix, 'SlimPajama-627B-llama3-tokenized-test', chunk_name)  # save .npy
     os.makedirs(chunk_cache_path, exist_ok=True)
 
     file_list = os.listdir(original_chunk_path)
     file_list.sort()
 
-    files_per_iteration = 500
+    files_per_iteration = 2
     n_iter = len(file_list) // files_per_iteration
     file_splits = np.array_split(file_list, n_iter)
 
@@ -96,6 +86,7 @@ def main(args):
 
         cache_dir = os.path.join(chunk_cache_path, f'part_{part_id}')  # path to save tokenized dataset of current part id
         num_workers = num_cpu_cores() // 2
+        # num_workers = 1
         chunk_size = 16
         datamodule = LMDataModule(dataset_name, tokenizer_name='meta-llama/Meta-Llama-3.1-8B',
                                   dataset_config_name=None,
@@ -108,13 +99,15 @@ def main(args):
         shutil.rmtree(os.path.join(dataset_name, 'train'), ignore_errors=True)
         f = open(os.path.join(cache_dir, 'SUCCESS'), 'w')
         f.close()
-        clean_hf_cache(hf_cache)
+        if os.path.isdir(hf_cache):
+            shutil.rmtree(hf_cache, ignore_errors=True)
+        os.makedirs(hf_cache)
 
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description="Tokenizing SlimPajama")
-    parser.add_argument("--chunk_name", type=str, default='chunk1')
+    parser = argparse.ArgumentParser(description="Tokenizing SlimPajama in Single Process with Flash-attention Script")
+    parser.add_argument("--chunk_name", type=str, default='chunk10')
     parser.add_argument("--resume", action='store_true')
     args = parser.parse_args()
 

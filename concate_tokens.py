@@ -18,11 +18,17 @@ np.random.seed(42)
 directory = Path("/juice5/scr5/nlp/mttt/datasets/SlimPajama-627B-llama3-tokenized")
 all_npy_files = directory.rglob("*.npy")
 
+## @xinhao: mix ratio for 100B tokens used for 128K retrofit
 # keywd = '500K_1M'
-keywd = 'above_1M'
-sample_ratio = 1.
+# keywd = 'above_1M'
+# sample_ratio = 1.
 # keywd = '10K_100K'
 # sample_ratio = 0.25
+
+## @xinhao: mix ratio for 100B tokens used for 8K retrofit
+keywd = '10K_100K'
+sample_ratio = 0.25
+
 
 print(f'keyword: {keywd}')
 print(f'sample ratio: {sample_ratio:.1%}')

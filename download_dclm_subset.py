@@ -15,7 +15,7 @@ file_abs_id = [i for i in range(num_total_file)]
 
 sampled_abs_id = random.sample(file_abs_id, math.ceil(num_total_file / 40))  # 4T tokens -> 100B tokens
 
-link_format = 'https://huggingface.co/datasets/mlfoundations/dclm-baseline-1.0/blob/main/global-shard_{:02}_of_10/local-shard_{}_of_10/shard_{:08}_processed.jsonl.zst?download=true'
+link_format = 'https://huggingface.co/datasets/mlfoundations/dclm-baseline-1.0/resolve/main/global-shard_{:02}_of_10/local-shard_{}_of_10/shard_{:08}_processed.jsonl.zst?download=true'
 
 link_list = []
 for abs_id in sampled_abs_id:
@@ -34,7 +34,8 @@ print(len(set(link_list)))
 
 # import zstandard as zstd
 # import json
-# with open("/Users/xinhaoli/Desktop/shard_00000000_processed.jsonl.zst", "rb") as compressed_file:
+# with open("/juice5/scr5/nlp/mttt/datasets/DCLM-Baseline-100B-json/train/global-shard_03_of_10_local-shard_3_of_10_shard_00000098_processed.jsonl.zst",
+#           "rb") as compressed_file:
 #     dctx = zstd.ZstdDecompressor()
 #     with dctx.stream_reader(compressed_file) as reader:
 #         # Read entire decompressed content at once

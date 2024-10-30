@@ -25,6 +25,9 @@ for abs_id in sampled_abs_id:
     link = link_format.format(global_id + 1, local_id, file_id)
     link_list.append(link)
 
-with open("links.txt", "w") as f:
-    for link in link_list:
-        f.write(link + "\n")
+# with open("links.txt", "w") as f:
+#     for link in link_list:
+#         f.write(link + "\n")
+
+print(len(link_list))
+print(len(set(link_list)))

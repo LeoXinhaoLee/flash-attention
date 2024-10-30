@@ -369,3 +369,20 @@ class TestLMDataModule:
             datamodule.prepare_data()
 
             shutil.rmtree(os.path.join(dataset_name, 'train'), ignore_errors=True)
+
+    def test_dclm(self):
+        dataset_name = '/home/xiaolwang/new_home/datasets/DCLM-Baseline-100B-json'
+        dataset_config_name = None
+        cache_dir = Path(f'/home/xiaolwang/new_home/datasets/DCLM-Baseline-100B-llama3-tokenized')  # path to save tokenized dataset
+        batch_size = 8
+        max_length = 2048
+        num_workers = num_cpu_cores() // 2
+        chunk_size = 16
+        # Dataset is too large to fit into memory, need to use disk for concatenation
+        datamodule = LMDataModule(dataset_name, tokenizer_name='meta-llama/Meta-Llama-3.1-8B',
+                                  dataset_config_name=dataset_config_name,
+                                  max_length=max_length, cache_dir=cache_dir,
+                                  add_eos=True, batch_size=batch_size,
+                                  num_workers=num_workers, use_shmem=False,
+                                  raw_json_path=None, pad_to_multiple_of=chunk_size)
+        datamodule.prepare_data()

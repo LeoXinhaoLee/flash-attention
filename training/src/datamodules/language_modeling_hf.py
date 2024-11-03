@@ -120,6 +120,7 @@ class LMDataModule(LightningDataModule):
             raw_datasets = load_dataset('json', data_files=self.raw_json_path)
         else:
             raw_datasets = load_dataset(self.dataset_name, self.dataset_config_name)
+            # raw_datasets = load_dataset(self.dataset_name, name="sample-100BT")
 
         # https://github.com/stanford-crfm/mistral/blob/main/src/corpora/auto.py
         if 'validation' not in raw_datasets:

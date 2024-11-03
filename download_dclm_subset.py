@@ -48,3 +48,20 @@ print(len(set(link_list)))
 #         for line in lines:
 #             line_content = json.loads(line)
 #             print(line_content)
+
+# import zstandard as zstd
+# import json
+#
+# with open('/juice5/scr5/nlp/mttt/datasets/DCLM-Baseline-100B-json/train/global-shard_01_of_10_local-shard_2_of_10_shard_00000261_processed.jsonl.zst', 'rb') as compressed_file:
+#     dctx = zstd.ZstdDecompressor()
+#     with dctx.stream_reader(compressed_file) as reader:
+#         decompressed_data = reader.read().decode('utf-8')
+#         lines = decompressed_data.splitlines()
+#         with open('/juice5/scr5/nlp/mttt/datasets/DCLM-Baseline-100B-json-processed/train/shard_00000058_processed.jsonl', 'w') as out_file:
+#             for line in lines:
+#                 record = json.loads(line)
+#                 record.pop('metadata')
+#                 # if "metadata" in record:
+#                 #     record["metadata"].setdefault("WARC-Truncated", None)
+#
+#                 out_file.write(json.dumps(record) + '\n')

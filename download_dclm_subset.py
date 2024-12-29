@@ -2,8 +2,11 @@ import math
 import random
 import numpy as np
 
-random.seed(42)
-np.random.seed(42)
+# random.seed(42)
+# np.random.seed(42)
+
+random.seed(0)
+np.random.seed(0)
 
 num_global_shards = 10
 num_local_shards = 10
@@ -13,9 +16,14 @@ num_total_file = num_global_shards * num_local_shards * num_json
 
 file_abs_id = [i for i in range(num_total_file)]
 
-sampled_abs_id = random.sample(file_abs_id, math.ceil(num_total_file / 40))  # 4T tokens -> 100B tokens
+# sampled_abs_id = random.sample(file_abs_id, math.ceil(num_total_file / 40))  # 4T tokens -> 100B tokens
+sampled_abs_id = random.sample(file_abs_id, math.ceil(num_total_file / 160))  # 4T tokens -> 25B tokens
 
 link_format = 'https://huggingface.co/datasets/mlfoundations/dclm-baseline-1.0/resolve/main/global-shard_{:02}_of_10/local-shard_{}_of_10/shard_{:08}_processed.jsonl.zst?download=true'
+
+f = open('links.txt')
+existing_links = f.readlines()
+f.close()
 
 link_list = []
 for abs_id in sampled_abs_id:
@@ -23,9 +31,10 @@ for abs_id in sampled_abs_id:
     local_id = (abs_id % (num_local_shards * num_json)) // num_json
     file_id = (abs_id % (num_local_shards * num_json)) % num_json
     link = link_format.format(global_id + 1, local_id, file_id)
-    link_list.append(link)
+    if link not in existing_links:
+        link_list.append(link)
 
-with open("links.txt", "w") as f:
+with open("links_2.txt", "w") as f:
     for link in link_list:
         f.write(link + "\n")
 

@@ -6,8 +6,10 @@ import zstandard as zstd
 import json
 from tqdm import tqdm
 
-src_dir = Path("/home/xinhaoli/datasets/DCLM-Baseline-100B-json")
-tgt_dir = Path("/home/xinhaoli/datasets/DCLM-Baseline-100B-json-text")
+# src_dir = Path("/home/xinhaoli/datasets/DCLM-Baseline-100B-json")
+# tgt_dir = Path("/home/xinhaoli/datasets/DCLM-Baseline-100B-json-text")
+src_dir = Path("/home/xinhaoli/datasets/DCLM-Baseline-25B-json")
+tgt_dir = Path("/home/xinhaoli/datasets/DCLM-Baseline-25B-json-text")
 tgt_dir.mkdir(parents=True, exist_ok=True)
 json_list = list(src_dir.glob("*.jsonl.zst"))
 

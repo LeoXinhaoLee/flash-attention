@@ -372,13 +372,13 @@ class TestLMDataModule:
 
     def test_dclm(self):
         # dataset_name = '/home/xiaolwang/new_home/datasets/DCLM-Baseline-100B-json'
-        dataset_name = '/home/xinhaoli/datasets/DCLM-Baseline-100B-json-text'  # GCP machine
-        # dataset_name = '/juice5/scr5/nlp/mttt/datasets/DCLM-Baseline-100B-json-processed/train'
+        # dataset_name = '/home/xinhaoli/datasets/DCLM-Baseline-100B-json-text'  # GCP machine
+        dataset_name = '/home/xinhaoli/datasets/DCLM-Baseline-25B-json-text'  # GCP machine
         dataset_config_name = None
         # cache_dir = Path(f'/home/xiaolwang/new_home/datasets/DCLM-Baseline-100B-llama3-tokenized')  # path to save tokenized dataset
         # cache_dir = Path('/home/xinhaoli/datasets/DCLM-Baseline-100B-llama3-tokenized')
-        cache_dir = Path('/home/xinhaoli/datasets/DCLM-Baseline-100B-llama3-tokenized-no-pod')
-        # cache_dir = Path('/juice5/scr5/nlp/mttt/datasets/DCLM-Baseline-100B-llama3-tokenized')
+        # cache_dir = Path('/home/xinhaoli/datasets/DCLM-Baseline-100B-llama3-tokenized-no-pad')
+        cache_dir = Path('/home/xinhaoli/datasets/DCLM-Baseline-25B-llama3-tokenized-no-pad')
         batch_size = 8
         max_length = 2048
         num_workers = num_cpu_cores() // 2

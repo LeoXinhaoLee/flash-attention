@@ -370,22 +370,40 @@ class TestLMDataModule:
 
             shutil.rmtree(os.path.join(dataset_name, 'train'), ignore_errors=True)
 
+    # def test_dclm(self):
+    #     # dataset_name = '/home/xiaolwang/new_home/datasets/DCLM-Baseline-100B-json'
+    #     # dataset_name = '/home/xinhaoli/datasets/DCLM-Baseline-100B-json-text'  # GCP machine
+    #     dataset_name = '/home/xinhaoli/datasets/DCLM-Baseline-25B-json-text'  # GCP machine
+    #     dataset_config_name = None
+    #     # cache_dir = Path(f'/home/xiaolwang/new_home/datasets/DCLM-Baseline-100B-llama3-tokenized')  # path to save tokenized dataset
+    #     # cache_dir = Path('/home/xinhaoli/datasets/DCLM-Baseline-100B-llama3-tokenized')
+    #     # cache_dir = Path('/home/xinhaoli/datasets/DCLM-Baseline-100B-llama3-tokenized-no-pad')
+    #     cache_dir = Path('/home/xinhaoli/datasets/DCLM-Baseline-25B-llama3-tokenized-no-pad')
+    #     batch_size = 8
+    #     max_length = 2048
+    #     num_workers = num_cpu_cores() // 2
+    #     # chunk_size = 16  # @xinhao: 10/31
+    #     chunk_size = 0  # @xinhao 11/01
+    #     # Dataset is too large to fit into memory, need to use disk for concatenation
+    #     datamodule = LMDataModule(dataset_name, tokenizer_name='meta-llama/Meta-Llama-3.1-8B',
+    #                               dataset_config_name=dataset_config_name,
+    #                               max_length=max_length, cache_dir=cache_dir,
+    #                               add_eos=True, batch_size=batch_size,
+    #                               num_workers=num_workers, use_shmem=False,
+    #                               raw_json_path=None,
+    #                               pad_to_multiple_of=chunk_size)
+    #     datamodule.prepare_data()
+
     def test_dclm(self):
-        # dataset_name = '/home/xiaolwang/new_home/datasets/DCLM-Baseline-100B-json'
-        # dataset_name = '/home/xinhaoli/datasets/DCLM-Baseline-100B-json-text'  # GCP machine
-        dataset_name = '/home/xinhaoli/datasets/DCLM-Baseline-25B-json-text'  # GCP machine
+        dataset_name = 'mlfoundations/dclm-pool-400m-1x'  # GCP machine
         dataset_config_name = None
-        # cache_dir = Path(f'/home/xiaolwang/new_home/datasets/DCLM-Baseline-100B-llama3-tokenized')  # path to save tokenized dataset
-        # cache_dir = Path('/home/xinhaoli/datasets/DCLM-Baseline-100B-llama3-tokenized')
-        # cache_dir = Path('/home/xinhaoli/datasets/DCLM-Baseline-100B-llama3-tokenized-no-pad')
-        cache_dir = Path('/home/xinhaoli/datasets/DCLM-Baseline-25B-llama3-tokenized-no-pad')
+        cache_dir = Path('/home/xinhaoli/datasets/DCLM-Baseline-400m-1x-llama2-tokenized-no-pad')
         batch_size = 8
         max_length = 2048
         num_workers = num_cpu_cores() // 2
-        # chunk_size = 16  # @xinhao: 10/31
-        chunk_size = 0  # @xinhao 11/01
-        # Dataset is too large to fit into memory, need to use disk for concatenation
-        datamodule = LMDataModule(dataset_name, tokenizer_name='meta-llama/Meta-Llama-3.1-8B',
+        chunk_size = 0
+        datamodule = LMDataModule(dataset_name,
+                                  tokenizer_name='meta-llama/Llama-2-7b-hf',
                                   dataset_config_name=dataset_config_name,
                                   max_length=max_length, cache_dir=cache_dir,
                                   add_eos=True, batch_size=batch_size,
